@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mancala AI — Adversarial Search</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo-group">
+        <div class="logo-badge">AI</div>
+        <div class="logo-text">
+          <span class="logo-main">MANCALA</span>
+          <span class="logo-dot">·</span>
+          <span class="logo-sub-inline">ADVERSARIAL SEARCH</span>
+        </div>
+      </div>
+      <nav class="header-nav">
+        <div class="nav-chip">
+          <span class="chip-dot dot-green"></span>
+          <span id="chip-algo-text">Alpha-Beta Aktif</span>
+        </div>
+        <div class="nav-chip">
+          <span>⬡</span>
+          Depth <strong id="nav-depth-val">5</strong>
+        </div>
+        <div class="nav-chip" id="chip-mode">👤 vs 🤖</div>
+      </nav>
+    </div>
+    <div class="header-line"></div>
+  </header>
+
+  <div class="page-wrapper">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar sidebar-left">
+
+      <div class="panel" style="--delay:.05s">
+        <div class="panel-header"><span class="panel-icon">⚙</span><span class="panel-title">Pengaturan</span></div>
+
+        <div class="field-group">
+          <label class="field-label">Tingkat Kesulitan AI</label>
+          <div class="segmented">
+            <button class="seg-btn" id="btn-easy" onclick="setDifficulty('easy')">😴 Mudah</button>
+            <button class="seg-btn active" id="btn-medium" onclick="setDifficulty('medium')">🙂 Sedang</button>
+            <button class="seg-btn" id="btn-hard" onclick="setDifficulty('hard')">🔥 Sulit</button>
+          </div>
+          <p class="difficulty-hint" id="difficulty-hint">AI kadang membuat keputusan kurang optimal — cocok untuk latihan.</p>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Mode Algoritma</label>
+          <div class="segmented">
+            <button class="seg-btn active" id="btn-ab" onclick="setAlgo('ab')">✦ Alpha-Beta</button>
+            <button class="seg-btn"         id="btn-mm" onclick="setAlgo('mm')">◈ Minimax</button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Mode Permainan</label>
+          <div class="segmented">
+            <button class="seg-btn active" id="btn-hva" onclick="setMode('hva')">👤 vs 🤖</button>
+            <button class="seg-btn"         id="btn-hvh" onclick="setMode('hvh')">👤 vs 👤</button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="depth-label-row">
+            <label class="field-label">Kedalaman Pencarian</label>
+            <span class="depth-badge" id="depth-badge">5</span>
+          </div>
+          <input type="range" id="depth-slider" min="1" max="9" value="5" class="slider" oninput="setDepth(this.value)" />
+          <div class="slider-ticks"><span>1</span><span>3</span><span>5</span><span>7</span><span>9</span></div>
+        </div>
+
+        <button class="btn-start" onclick="newGame()">
+          <span class="btn-start-bg"></span>
+          <span class="btn-start-content"><span>▶</span> Mulai Game Baru</span>
+        </button>
+
+        <div class="speed-row">
+          <span class="speed-label">Kecepatan Biji</span>
+          <div class="speed-btns">
+            <button class="speed-btn" data-ms="500">🐢 Lambat</button>
+            <button class="speed-btn active" data-ms="320">▶ Normal</button>
+            <button class="speed-btn" data-ms="140">⚡ Cepat</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="--delay:.11s">
+        <div class="panel-header"><span class="panel-icon">♟</span><span class="panel-title">Status Permainan</span></div>
+        <div class="turn-card" id="turn-card">
+          <div class="turn-pulse" id="turn-pulse"></div>
+          <div><span class="turn-who" id="turn-who">Belum Dimulai</span><span class="turn-sub" id="turn-sub">Tekan Mulai Game Baru</span></div>
+        </div>
+        <div class="score-row">
+          <div class="score-block score-p1">
+            <span class="score-player">👤 Kamu</span>
+            <span class="score-num" id="score-p1">0</span>
+            <span class="score-label">benih</span>
+          </div>
+          <span class="score-vs">VS</span>
+          <div class="score-block score-p2">
+            <span class="score-player">🤖 AI</span>
+            <span class="score-num" id="score-p2">0</span>
+            <span class="score-label">benih</span>
+          </div>
+        </div>
+        <div id="game-result" class="game-result hidden"></div>
+      </div>
+
+      <div class="panel" style="--delay:.17s">
+        <div class="panel-header"><span class="panel-icon">📊</span><span class="panel-title">Statistik Node</span></div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-val" id="stat-mm-nodes">—</span>
+            <span class="stat-name">Nodes Minimax</span>
+          </div>
+          <div class="stat-item accent-green">
+            <span class="stat-val" id="stat-ab-nodes">—</span>
+            <span class="stat-name">Nodes Alpha-Beta</span>
+          </div>
+          <div class="stat-item accent-purple">
+            <span class="stat-val" id="stat-pruned">—</span>
+            <span class="stat-name">Dipangkas</span>
+          </div>
+          <div class="stat-item accent-gold">
+            <span class="stat-val" id="stat-efficiency">—</span>
+            <span class="stat-name">Efisiensi</span>
+          </div>
+        </div>
+        <div class="mini-stat-row">
+          <div class="mini-stat"><span class="mini-label">Waktu</span><span class="mini-val mono" id="stat-time">— ms</span></div>
+          <div class="mini-stat"><span class="mini-label">Skor AI</span><span class="mini-val mono" id="stat-score">—</span></div>
+        </div>
+        <button class="btn-ghost" onclick="runBenchmark()">🔬 Jalankan Benchmark Depth 1–6</button>
+      </div>
+
+    </aside>
+
+    <!-- CENTER BOARD -->
+    <main class="board-center">
+
+      <!-- AI banner -->
+      <div class="player-banner banner-ai" style="--delay:.18s">
+        <div class="banner-glow banner-glow-ai"></div>
+        <div class="banner-content">
+          <span class="banner-avatar">🤖</span>
+          <div><span class="banner-name">Kecerdasan Buatan</span><span class="banner-role">Player 2 · Sisi Atas</span></div>
+          <div class="banner-score-pill" id="banner-score-ai">0</div>
+        </div>
+      </div>
+
+      <!-- THE WOODEN BOARD -->
+      <div class="mancala-wrapper" style="--delay:.28s">
+        <div class="mancala-board" id="mancala-board">
+
+          <!-- Hinge decorations -->
+          <div class="board-hinge hinge-top"></div>
+          <div class="board-hinge hinge-bottom"></div>
+
+          <!-- Store AI (left) -->
+          <div class="store store-ai" id="store-2">
+            <div class="store-inner">
+              <span class="store-tag">Mancala AI</span>
+              <div class="store-num" id="store-2-count">0</div>
+              <div class="store-gems" id="store-2-seeds"></div>
+            </div>
+          </div>
+
+          <!-- Pits -->
+          <div class="pits-zone">
+
+            <!-- AI pits: 12→7 (right to left visually) -->
+            <div class="pits-row row-ai" id="pits-ai">
+              <div class="pit pit-ai" data-pit="12" onclick="humanMove(12)">
+                <div class="pit-outer"></div>
+                <div class="pit-hole">
+                  <div class="pit-gems" id="pit-seeds-12"></div>
+                  <div class="pit-count" id="pit-12">4</div>
+                  <div class="pit-hover-glow"></div>
+                </div>
+                <span class="pit-label">F</span>
+              </div>
+              <div class="pit pit-ai" data-pit="11" onclick="humanMove(11)">
+                <div class="pit-outer"></div>
+                <div class="pit-hole">
+                  <div class="pit-gems" id="pit-seeds-11"></div>
+                  <div class="pit-count" id="pit-11">4</div>
+                  <div class="pit-hover-glow"></div>
+                </div>
+                <span class="pit-label">E</span>
+              </div>
+              <div class="pit pit-ai" data-pit="10" onclick="humanMove(10)">
+                <div class="pit-outer"></div>
+                <div class="pit-hole">
+                  <div class="pit-gems" id="pit-seeds-10"></div>
+                  <div class="pit-count" id="pit-10">4</div>
+                  <div class="pit-hover-glow"></div>
+                </div>
+                <span class="pit-label">D</span>
+              </div>
+              <div class="pit pit-ai" data-pit="9" onclick="humanMove(9)">
+                <div class="pit-outer"></div>
+                <div class="pit-hole">
+                  <div class="pit-gems" id="pit-seeds-9"></div>
+                  <div class="pit-count" id="pit-9">4</div>
+                  <div class="pit-hover-glow"></div>
+                </div>
+                <span class="pit-label">C</span>
+              </div>
+              <div class="pit pit-ai" data-pit="8" onclick="humanMove(8)">
+                <div class="pit-outer"></div>
+                <div class="pit-hole">
+                  <div class="pit-gems" id="pit-seeds-8"></div>
+                  <div class="pit-count" id="pit-8">4</div>
+                  <div class="pit-hover-glow"></div>
+                </div>
+                <span class="pit-label">B</span>
+              </div>
+              <div class="pit pit-ai" data-pit="7" onclick="humanMove(7)">
+                <div class="pit-outer"></div>
+                <div class="pit-hole">
+                  <div class="pit-gems" id="pit-seeds-7"></div>
+                  <div class="pit-count" id="pit-7">4</div>
+                  <div class="pit-hover-glow"></div>
+                </div>
+                <span class="pit-label">A</span>
+              </div>
+            </div>
+
+            <!-- Divider line (center fold) -->
+            <div class="board-divider-line"></div>
+
+            <!-- Human pits: 0→5 -->
+            <div class="pits-row row-human" id="pits-human">
+              <div class="pit pit-human" data-pit="0" onclick="humanMove(0)">
+                <div class="pit-outer"></div>
+                <div class="pit-hole">
+                  <div class="pit-gems" id="pit-seeds-0"></div>
+                  <div class="pit-count" id="pit-0">4</div>
+                  <div class="pit-hover-glow"></div>
+                </div>
+                <span class="pit-label">1</span>
+              </div>
+              <div class="pit pit-human" data-pit="1" onclick="humanMove(1)">
+                <div class="pit-outer"></div>
+                <div class="pit-hole">
+                  <div class="pit-gems" id="pit-seeds-1"></div>
+                  <div class="pit-count" id="pit-1">4</div>
+                  <div class="pit-hover-glow"></div>
+                </div>
+                <span class="pit-label">2</span>
+              </div>
+              <div class="pit pit-human" data-pit="2" onclick="humanMove(2)">
+                <div class="pit-outer"></div>
+                <div class="pit-hole">
+                  <div class="pit-gems" id="pit-seeds-2"></div>
+                  <div class="pit-count" id="pit-2">4</div>
+                  <div class="pit-hover-glow"></div>
+                </div>
+                <span class="pit-label">3</span>
+              </div>
+              <div class="pit pit-human" data-pit="3" onclick="humanMove(3)">
+                <div class="pit-outer"></div>
+                <div class="pit-hole">
+                  <div class="pit-gems" id="pit-seeds-3"></div>
+                  <div class="pit-count" id="pit-3">4</div>
+                  <div class="pit-hover-glow"></div>
+                </div>
+                <span class="pit-label">4</span>
+              </div>
+              <div class="pit pit-human" data-pit="4" onclick="humanMove(4)">
+                <div class="pit-outer"></div>
+                <div class="pit-hole">
+                  <div class="pit-gems" id="pit-seeds-4"></div>
+                  <div class="pit-count" id="pit-4">4</div>
+                  <div class="pit-hover-glow"></div>
+                </div>
+                <span class="pit-label">5</span>
+              </div>
+              <div class="pit pit-human" data-pit="5" onclick="humanMove(5)">
+                <div class="pit-outer"></div>
+                <div class="pit-hole">
+                  <div class="pit-gems" id="pit-seeds-5"></div>
+                  <div class="pit-count" id="pit-5">4</div>
+                  <div class="pit-hover-glow"></div>
+                </div>
+                <span class="pit-label">6</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Store Human (right) -->
+          <div class="store store-human" id="store-1">
+            <div class="store-inner">
+              <span class="store-tag">Mancala Kamu</span>
+              <div class="store-num" id="store-1-count">0</div>
+              <div class="store-gems" id="store-1-seeds"></div>
+            </div>
+          </div>
+
+        </div>
+        <div class="board-corners">
+          <span>← AI (kanan ke kiri)</span>
+          <span>Kamu (kiri ke kanan) →</span>
+        </div>
+      </div>
+
+      <!-- Human banner -->
+      <div class="player-banner banner-human" style="--delay:.18s">
+        <div class="banner-glow banner-glow-human"></div>
+        <div class="banner-content">
+          <span class="banner-avatar">👤</span>
+          <div><span class="banner-name">Pemain</span><span class="banner-role">Player 1 · Sisi Bawah</span></div>
+          <div class="banner-score-pill banner-score-human" id="banner-score-human">0</div>
+        </div>
+      </div>
+
+      <!-- Log -->
+      <div class="log-container" style="--delay:.38s">
+        <div class="log-header">
+          <span class="log-title">📋 Log Permainan</span>
+          <button class="log-clear" onclick="clearLog()">Hapus</button>
+        </div>
+        <div class="log-body" id="message-log">
+          <div class="log-entry log-info"><span class="log-time">00:00</span><span>Selamat datang! Tekan "Mulai Game Baru" untuk memulai.</span></div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- RIGHT SIDEBAR -->
+    <aside class="sidebar sidebar-right">
+
+      <div class="panel" style="--delay:.07s">
+        <div class="panel-header"><span class="panel-icon">🌳</span><span class="panel-title">Visualisasi Game Tree</span></div>
+        <div class="tree-toolbar">
+          <button class="btn-ghost btn-sm" onclick="refreshTree()">↻ Perbarui</button>
+          <select id="tree-depth-select" class="select-sm">
+            <option value="2">Depth 2</option>
+            <option value="3" selected>Depth 3</option>
+          </select>
+        </div>
+        <div class="tree-legend">
+          <div class="legend-item"><span class="legend-pip pip-max"></span>MAX (AI)</div>
+          <div class="legend-item"><span class="legend-pip pip-min"></span>MIN (Manusia)</div>
+          <div class="legend-item"><span class="legend-pip pip-pruned"></span>Dipangkas</div>
+          <div class="legend-item"><span class="legend-pip pip-leaf"></span>Daun</div>
+        </div>
+        <div class="tree-viewport" id="tree-container">
+          <div class="tree-empty"><div class="tree-empty-icon">🌱</div><p>Game tree muncul setelah permainan dimulai.</p></div>
+        </div>
+      </div>
+
+      <div class="panel" id="benchmark-section" style="display:none;--delay:.13s">
+        <div class="panel-header"><span class="panel-icon">📈</span><span class="panel-title">Tabel Benchmark</span></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Depth</th><th>MM Nodes</th><th>AB Nodes</th><th>Pangkas</th><th>MM(ms)</th><th>AB(ms)</th></tr></thead>
+            <tbody id="benchmark-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+
+  <!-- Thinking overlay -->
+  <div class="thinking-overlay hidden" id="loading-overlay">
+    <div class="thinking-card">
+      <div class="thinking-orbs">
+        <div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+      </div>
+      <p class="thinking-label" id="loading-text">AI sedang berpikir…</p>
+      <div class="thinking-bar"><div class="thinking-bar-fill"></div></div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/static/js/game.js"></script>
+</body>
+</html>
