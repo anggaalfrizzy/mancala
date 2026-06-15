@@ -118,14 +118,15 @@ mancala/
 
 ## 📸 Screenshot
 
-> *(Tambahkan screenshot aplikasi di sini)*
+<img width="952" height="437" alt="image" src="https://github.com/user-attachments/assets/280c2b89-e457-46d8-be52-f9d148219f37" />
+
 
 ---
 
 ## 🔗 Link
 
-- **Demo:** [namaanda.my.id](https://namaanda.my.id)
-- **GitHub:** [github.com/username/adversarial-search-nim](https://github.com/username/adversarial-search-nim)
+- **Demo:** https://www.mancala.my.id/
+- **GitHub:** https://github.com/anggaalfrizzy/mancala
 
 ---
 
